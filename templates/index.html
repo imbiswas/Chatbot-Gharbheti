@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+
+<head lang="en">
+  <meta charset="UTF-8">
+  <title></title>
+  <img hidden  src="/static/loader.gif"></img>
+  <script src="//code.jquery.com/jquery-1.11.1.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-timeago/1.4.0/jquery.timeago.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.3/jquery.mCustomScrollbar.concat.min.js'></script>
+  <script src="/static/script/jquery.nicescroll.js"></script>
+ <script>
+//login
+  //unique user id generation
+  function guid() {
+  return s4() + s4() +"-" + s4()+"-"  + s4()+"-" +s4()+"-"  + s4() + s4() + s4();
+    }
+
+  function s4() {
+  return Math.floor((1 + Math.random()) * 0x10000)
+    .toString(16)
+    .substring(1);
+    }
+
+    //check for cookeis
+    $(function () {
+
+      if ($.cookie("realtime-chat-nickname")) {
+        //window.location = "/"
+      } else {
+        $("#frm-login").submit(function (event) {
+          event.preventDefault();
+
+
+        })
+      }
+    })
+  </script>
+  <script>
+
+  var channel = "/chat";
+        var socket = io.connect('http://' + document.domain + ':' + location.port + channel);
+        var receivedMsg;
+
+
+        socket.on('connect', function () {
+          socket.emit('my_connection', { data: 'I\'m connected!' });
+        });
+
+        socket.on('disconnect', function(){
+          console.log("chat disconnected");
+        });
+        
+        // socket.on("typing", function (message) {
+        //   alert("typing");
+        //   showTyping();
+        // });
+        socket.on("message", function (message) {
+          // alert("hide");
+          hideTyping();
+          receivedMsg = message;
+          refreshMessages(message);
+        });
+
+    // if list is empty display opening message
+    $(function () {
+      var ml=$('.media-list').find('li');
+
+      if(ml.length==0)
+      {
+        $(".media-list").append('<li class="watermark"><div class="media-body"><div class="media"><div class="media-body">Welcome To amplecube.com. To start conversation, Say hello.</div></div></div></li>');
+
+       }
+      else
+      {
+        $('.media-list').find('.watermark').remove();
+      }
+    })
+    function showTyping(){
+      $(".media-list").append('<li ><div class="form-group typing">'+
+      '<div class="row">'+
+        '<div class="col-lg-3 col-md-3"><span class="fas fa-robot pb-chat-fa-user" style="font-size:16px"></span></div>'+
+        '<div class="col-lg-9 col-md-9 pad-left-o"><span class=""> <img src="/static/loader.gif" class="image" ></img></small></span></div>'+
+      '<div class="clearfix"></div>'+
+      '</div>'+'</div></li>');
+
+    }
+    function hideTyping(){
+
+      $(".media-list").find(".typing").hide('slow').remove()
+
+    }
+    //refresh message
+    function refreshMessages(message) {
+    //if sender is chat bot
+    if (message.data.author=='Ample Cube'){
+      $(".media-list").append('<li ><div class="form-group">'+
+
+      '<div class="row">'+
+        '<div class="col-lg-3 col-md-3"><span class="fas fa-robot pb-chat-fa-user" style="font-size:16px"></span></div>'+
+        '<div class="col-lg-9 col-md-9 pad-left-o"><span class="label2 label-default pb-chat-labels pb-chat-labels-right">'
+        + message.data.message +  '</small></span></div>'+
+      '<div class="clearfix"></div>'+
+      '</div>'+
+
+        '</div></li>');
+        }
+
+  //if sender is human
+    else{
+        $(".media-list").append('<li ><div class="form-group">'+
+
+      '<div class="row">'+
+
+        '<div class="col-lg-9 col-md-9 pad-right-o"><span class="label label-default pb-chat-labels pb-chat-labels-left">'
+        + message.data.message +  '</small></span></div>'+
+
+        '<div class="col-lg-3 col-md-3"><span class="fa fa-lg fa-user pb-chat-fa-user"></span></div>'+
+
+
+
+      '<div class="clearfix"></div>'+
+      '</div>'+
+
+        '</div></li>');
+        }
+
+        var BX= $(".media-list li").last().offset();
+
+          $('.media-list').find('.watermark').remove();
+          $('#chatContentDiv').animate({ scrollTop: $('#chatContentDiv').prop('scrollHeight')},'slow');
+        }
+
+    //check for the cookie
+    $(function connect () {
+
+      if (typeof $.cookie("realtime-chat-nickname") === 'undefined') {
+        //window.location = "/login"
+        $('#chatMessageDiv').hide();
+        $('#chatContentDiv').hide();
+        $('#login-body').show();
+      } else {
+        $('#login-body').remove();
+        }
+        $("#sendMessage").on("click", function () {
+          sendMessage()
+        });
+
+        $('#messageText').keyup(function (e) {
+          if (e.keyCode == 13) {
+            sendMessage();
+          }
+        });
+
+
+
+      //send message
+      function sendMessage() {
+        $container = $('.media-list');
+        $container[0].scrollTop = $container[0].scrollHeight;
+        var message = $("#messageText").val();
+        var author = $.cookie("realtime-chat-nickname");
+        var uid= $.cookie("realtime-chat-user_id");
+        var email= $.cookie("realtime-chat-email");
+        var contact= $.cookie("realtime-chat-contact");
+
+
+        message=message.trim();
+        if (message==''){
+        return false;
+        };
+        var a={
+        'data':{
+        'message':message
+        }
+        };
+
+
+        refreshMessages(a)
+        hideTyping();
+        showTyping();
+        socket.emit('message', { data: { message: message, author: author, id: uid , email:email, contact:contact } });
+        $("#messageText").val("");
+        $container.animate({ scrollTop: $container[0].scrollHeight }, "slow");
+      }
+    })
+
+    var elements = document.querySelectorAll('.discord-dialog__close-button, .discord-dialog')
+    for (var i = 0; i < elements.length; i++) {
+      elements[i].addEventListener("click", function() {
+        toggle('.discord-dialog')
+      })
+    }
+
+$(document).ready(function(){
+    $("#btnchat").click(function(){
+        $("#btnchat").hide('slow');
+    });
+    $("#btnclose").click(function(){
+        $("#btnchat").show('slow');
+    });
+
+    $("#chatContentDiv").niceScroll();
+});
+</script>
+
+
+  <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/style.css') }}">
+  <link rel='stylesheet prefetch' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+  <link rel='stylesheet prefetch' href='https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.3/jquery.mCustomScrollbar.min.css'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+  <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">-->
+
+</head>
+
+<body>
+
+  <div class="discord-button" id="btnchat" onclick="document.querySelector('.chat').className = 'chat chatactive'">
+    <i class="fa fa-comments" id='chatlogo' aria-hidden="true" ></i>
+  </div>
+
+  <div class="chat">
+
+    <div class="chat-title">
+       <div class="button-close" id="btnclose" onclick="document.querySelector('.chat').className ='chat'">
+         <i class="fa fa-close" aria-hidden="true" ></i>
+       </div>
+      <h1>Amplecube.COM</h1>
+      <h2>Online</h2>
+
+      <figure class="avatar">
+        <img src="/static/AmpleCube.jpg" alt="Ample Cube" /></figure>
+    </div>
+    <div class="panel-body fixed-panel"  id="chatContentDiv">
+
+      <ul class="media-list">
+      </ul>
+    </div>
+    <div class="message-box" id="chatMessageDiv">
+
+        <input type="text" class="message-input" placeholder="Enter Message..."  id="messageText" />
+
+      <button class="message-submit" type="button" id="sendMessage">SEND <span class="glyphicon glyphicon-send"></span></button>
+
+    </div>
+
+
+    <div  id="login-body" class="panel-body fixed-panel" style="padding-top: 50px; display:none">
+    <div class="row">
+      <div class="">
+        <div class="login-panel panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title">Fill the form to continue chat</h3>
+          </div>
+          <div class="panel-body">
+            <form role="form" id="frm-login">
+              <fieldset>
+                <div class="form-group">
+                  <div class="form-group  has-feedback">
+                  <input class="form-control" placeholder="Enter Your Name" name="nickname" id="nickname" type="text" autofocus required="" >
+                  <span class="glyphicon form-control-feedback" id="Nickname"  data-toggle="tooltip"  title="" aria-hidden="true"></span>
+
+                    </div>
+                  <div class="form-group  has-feedback">
+                    <input class="form-control" placeholder="Enter Email" name="email" id="Email" type="email" autofocus required="">
+                    <span class="glyphicon form-control-feedback" id="EmailSign"  data-toggle="tooltip"  title="" aria-hidden="true"></span>
+
+                  </div>
+                  <!--<input class="form-control" placeholder="Enter Email" name="email" id="Email" type="email" autofocus required="">&ndash;&gt;-->
+                  <div class="form-group  ">
+                  <input class="form-control" placeholder="Enter Contact Number" name="contact" id="Contact" type="number" maxlength="10" autofocus required="">
+                  </div>
+                </div>
+                <button type="button" id='clickBtn' class="btn btn-lg btn-success btn-block">Enter Chat</button>
+              </fieldset>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+      </div>
+
+
+<script>
+   $('#clickBtn').on('click', function() {
+   var email=$("#Email").val();
+   var name=$("#nickname").val();
+   if(validateEmail(email)&&validateName(name))
+   {
+
+  var user_id = guid();
+
+if ($("#nickname").val() !== '' && $("#nickname").val() !== 'amplecube' && $("#nickname").val() !== 'ample cube' && $("#nickname").val() !== 'Ample Cube' && $("#nickname").val() !== 'AmpleCube' ) {
+            $.cookie("realtime-chat-nickname", $("#nickname").val());
+            $.cookie("realtime-chat-email", $("#Email").val());
+            $.cookie("realtime-chat-contact", $("#Contact").val());
+            $.cookie("realtime-chat-user_id",user_id );
+            $('#chatMessageDiv').show();
+            $('#chatContentDiv').show();
+            $('#login-body').remove();
+
+                        //window.location = "/";
+          }
+}
+})
+</script>
+
+<style>
+
+</style>
+
+<script>
+$('#Email').blur(function()
+{
+  var email=$('#Email').val();
+  if(validateEmail(email))
+  {
+    $('#EmailSign').removeClass('glyphicon-remove')
+    $('#Email').closest('.form-group').removeClass('has-error')
+    $('#EmailSign').addClass('glyphicon-ok')
+    $('#Email').closest('.form-group').addClass('has-success')
+    $('#EmailSign').attr('title','')
+  }
+  else
+  {
+  $('#EmailSign').removeClass('glyphicon-ok')
+    $('#Email').closest('.form-group').removeClass('has-success')
+    $('#EmailSign').addClass('glyphicon-remove')
+    $('#Email').closest('.form-group').addClass('has-error')
+    $('#EmailSign').attr('title','Enter a valid Email address')
+
+  }
+});
+function validateEmail(email) {
+  var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(email);
+}
+
+$('#Contact').on('keypress',function(e){
+debugger;
+  var contact=$('#Contact').val()
+  if(contact.length>9)
+  {
+  e.preventDefault();
+    return;
+  }
+
+});
+$('#nickname').on('keypress',function(e){
+debugger;
+  var nickname=$('#nickname').val()
+  if(validateName(nickname))
+  {
+    $('#Nickname').removeClass('glyphicon-remove')
+    $('#nickname').closest('.form-group').removeClass('has-error')
+    $('#Nickname').addClass('glyphicon-ok')
+    $('#nickname').closest('.form-group').addClass('has-success')
+    $('#Nickname').attr('title','')
+    
+  }
+  else
+  {
+
+    $('#Nickname').removeClass('glyphicon-ok')
+    $('#nickname').closest('.form-group').removeClass('has-success')
+    $('#Nickname').addClass('glyphicon-remove')
+    $('#nickname').closest('.form-group').addClass('has-error')
+    $('#Nickname').attr('title','Enter a valid Nickname')
+  }
+
+});
+function validateName(nickname) {
+  if(nickname.length>3){
+    return true;
+  }
+  return false;
+}
+
+
+
+
+</script>
+
+
+
+</body>
+
+</html>
